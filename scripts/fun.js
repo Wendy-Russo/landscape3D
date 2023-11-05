@@ -42,13 +42,15 @@ setInterval(() => {
 
       const pos2D = new vec(x,y,0)
 
-      if(isPointInQuadrilateral(pos2D,floor.projPoints)){
+      if(isPointInQuadrilateral(pos2D,floor.projPoints)){ //isPointInQuadrilateral(pos2D,floor.projPoints)
 
         const pos3D  = projectTo3D(pos2D)
         const pos3DRot = m.multiply(pos3D)
 
         const texX = Math.floor(remap(pos3DRot.x,-halfZoom,halfZoom,0,map.width))
         const texY = Math.floor(remap(pos3DRot.y,-halfZoom,halfZoom,0,map.width))
+
+        if(texX < 0 || texY < 0 || texX > 511 || texY > 511) continue
         const imageID = texY*map.width+texX;
 
         const scaledHeight =  Math.round(map.elevation[imageID]*heightMult)
@@ -99,7 +101,7 @@ setInterval(() => {
   drawG(startX + (size*10),startY+(size*6),3)
 
   updateScreen();
-  camera.rotation.z -= 1/15
+  camera.rotation.z -= 1/10
 
   times.push(new Date() - time)
   const timeMS = calculateAverage(times).toFixed(2)
