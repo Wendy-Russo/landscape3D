@@ -61,3 +61,9 @@ function skewPoint(point, origin, skewX, skewY) {
   return { x: skewedX, y: skewedY };
 }
 
+function isInRectangle(x,y,rec){
+  if(x < rec.x || y < rec.y || x >= rec.x+rec.width || y >= rec.y+rec.height){
+    return false
+  }
+  return true
+}

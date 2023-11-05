@@ -43,6 +43,7 @@ class plane {
     this.size = size;
     this.color = color;
     this.rotVec = rotVec;
+    this.x0 = null;
 
     this.worldPoints = [];
     this.worldScale = [];

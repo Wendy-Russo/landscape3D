@@ -17,22 +17,37 @@ setInterval(() => {
   const time = new Date();
 
   let minX = Math.min(floor.projPoints[0].x ,floor.projPoints[1].x ,floor.projPoints[2].x ,floor.projPoints[3].x )
-  minX = Math.max(minX,0)
+  minX = 0//Math.max(minX,0)
 
   let maxX = Math.max(floor.projPoints[0].x ,floor.projPoints[1].x ,floor.projPoints[2].x ,floor.projPoints[3].x )
-  maxX = Math.min(maxX,screen.width)
+  maxX = 640 // Math.min(maxX,screen.width)
 
   let minY = Math.min(floor.projPoints[0].y ,floor.projPoints[1].y ,floor.projPoints[2].y ,floor.projPoints[3].y )
-  minY = Math.max(minY,0)
+  minY = 0// Math.max(minY,0)
 
   let maxY = Math.max(floor.projPoints[0].y ,floor.projPoints[1].y ,floor.projPoints[2].y ,floor.projPoints[3].y )
-  maxY = Math.min(maxY,screen.height) + (256*camera.zoom * 0.5)+80
+  maxY = 480 // Math.min(maxY,screen.height) + (256*camera.zoom * 0.5)+80
 
   let distY = Math.max(camera.zoom,1) //higher = bad quality
   let distX = 1 //same as above, removes some columns and enables upscaling
 
   const halfZoom = camera.zoom*0.5
   const heightMult = camera.zoom/screen.height*256
+
+  const point0 = floor.projPoints[1];
+  const point1 = floor.projPoints[2];
+  const point3 = floor.projPoints[0];
+
+  const k0 = point1.y - point0.y;
+  const k1 = point3.y - point0.y;
+  
+  const k2 = point1.x - point0.x;
+  const k3 = point3.x - point0.x
+
+  const k4 = 1 / (k0 * k3 - k1 * k2)
+  const k6 = 1 / k1
+  const k7 = 1 / k3
+
   for(let x = Math.round(minX) ; x < Math.round(maxX); x+=distX){
 
     let maxH = Math.round(maxY);
@@ -43,23 +58,39 @@ setInterval(() => {
       const pos2D = new vec(x,y,0)
 
       if(isPointInQuadrilateral(pos2D,floor.projPoints)){ //isPointInQuadrilateral(pos2D,floor.projPoints)
+        
+        let kx = x - point0.x
+        let ky = y - point0.y
+        let u  = k4 * (ky*k3 - kx*k1)
 
-        const pos3D  = projectTo3D(pos2D)
-        const pos3DRot = m.multiply(pos3D)
+        let v = 0;
+        if(k1 !== 0) {
+          v  = k6 * (ky - u * k0)
+        }
+        else{
+          v = k7 * (kx - u * k2)
+        }
+        
 
-        const texX = Math.floor(remap(pos3DRot.x,-halfZoom,halfZoom,0,map.width))
-        const texY = Math.floor(remap(pos3DRot.y,-halfZoom,halfZoom,0,map.width))
+        //const pos3D  = projectTo3D(pos2D)
+        //const pos3DRot = m.multiply(pos3D)
 
-        if(texX < 0 || texY < 0 || texX > 511 || texY > 511) continue
+        //const texX = Math.floor(remap(pos3DRot.x,-halfZoom,halfZoom,0,map.width))
+        //const texY = Math.floor(remap(pos3DRot.y,-halfZoom,halfZoom,0,map.width))
+        
+        const texX = Math.floor(remap(u,0,1,0,map.width))
+        const texY = Math.floor(remap(v,0,1,0,map.height))
+
+        //if(texX < 0 || texY < 0 || texX > 511 || texY > 511) continue
+
         const imageID = texY*map.width+texX;
-
         const scaledHeight =  Math.round(map.elevation[imageID]*heightMult)
         const top = Math.round(pos2D.y+80)-scaledHeight
         
         if(top < -(maxH - top)+1){ //makes sure you don't draw above the top of the screen
           break
         }
-        if(top < maxH){ //prevents overdraw
+        else if(top < maxH){ //prevents overdraw
           if(first){ //skip the first line 
             maxH = top
             first = false
@@ -82,9 +113,13 @@ setInterval(() => {
     }
   }
 
-  for(let x = button.x; x<(button.x+button.width); x++){
-    for(let y = button.y; y<(button.y+button.height); y++){
-      drawPixel(x,y,255,255,255)
+  for(let x = 500; x<screen.width; x++){
+    for(let y = 0; y<screen.height; y++){
+      if(isInRectangle(x,y,button)){
+        drawPixel(x,y,255,255,255)
+      } else if(isInRectangle(x,y,buttonStop)){
+        drawPixel(x,y,255,255,255)
+      }
     }
   }
 
@@ -92,16 +127,30 @@ setInterval(() => {
 
   const startX = button.x + size
   const startY = button.y + size
-  drawN(startX,startY,3)
-  drawE(startX + (size*5),startY,3)
-  drawW(startX + (size*10),startY,3)
+  drawN(startX,startY,size)
+  drawE(startX + (size*5),startY,size)
+  drawW(startX + (size*10),startY,size)
 
-  drawI(startX + (size*1),startY+(size*6),3)
-  drawM(startX + (size*4),startY+(size*6),3)
-  drawG(startX + (size*10),startY+(size*6),3)
+  let lineX = 0
+
+  drawI(startX + (size*lineX),startY+(size*6),size)
+  drawM(startX + (size*(lineX+2)),startY+(size*6),size)
+  drawG(startX + (size*(lineX+8)),startY+(size*6),size)
+
+  if(camera.autoRotate){
+    drawPlay(buttonStop.x + size*1,buttonStop.y + size * 1,size,0)
+    drawPause(buttonStop.x + size*5,buttonStop.y + size * 1,size,127)
+  }else{
+    drawPlay(buttonStop.x + size*1,buttonStop.y + size * 1,size,127)
+    drawPause(buttonStop.x + size*5,buttonStop.y + size * 1,size,0)
+  }
+
 
   updateScreen();
-  camera.rotation.z -= 1/10
+
+  if(camera.autoRotate){
+    camera.rotation.z -= 1/10
+  }
 
   times.push(new Date() - time)
   const timeMS = calculateAverage(times).toFixed(2)
@@ -134,12 +183,44 @@ window.addEventListener("click", (e) => {
   const mouseY = e.offsetY
   const hoverY = Math.round(mouseY/canvasHeight*screen.height)
 
-  if(
-    hoverX > (button.x) && 
-    hoverX < (button.x + button.width) && 
-    hoverY > (button.y) && 
-    hoverY < (button.y + button.height))
+  if(isInRectangle(hoverX,hoverY,button))
   {
-    updateMap(Math.round(Math.random() * 1024),256)
+    updateMap(Math.round(Math.random() * 1024 * 32),256)
+  }
+
+  if(isInRectangle(hoverX,hoverY,buttonStop))
+  {
+    camera.autoRotate = !camera.autoRotate
   }
 })
+
+
+
+
+/*BASICALLY
+
+point0 = screen space coordinates for (0,0) in texture space
+point1 = screen space coordinates for (width,0) in texture space
+point2 = screen space coordinates for (0,height) in texture space
+
+  CHANGES WHEN CAMERA MOVES
+
+xVecY = point1.y - point0.y
+xVecX = point1.x - point0.x
+
+yVecY = point2.y - point0.y
+yVecX = point2.x - point0.x
+
+k4 = 1 / xVecY * yVecX - yVecY * xVecX
+k6 = 1 / yVecY
+k7 = 1 / yVecX
+
+  CHANGES FOR EACH PIXEL
+
+kx = xi - point0.x
+ky = yi - point0.y
+u  = k4 * (ky*k3 - kx*yVecY)
+v  = k6 * (ky - u * xVecY)
+(v = k7 * (kx - u * xVecX))
+
+*/

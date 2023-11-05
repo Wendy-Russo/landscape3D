@@ -27,14 +27,22 @@ const screen = {
 
 const camera = {
   rotation: {x:32.5, y:0, z:0},
-  zoom: 1
+  zoom: 1,
+  autoRotate : true
 }
 
 const button = {
-  x:(640-50-10),
+  x:(640-60),
   y:10,
   width:51,
   height:38,
+}
+
+const buttonStop = {
+  x:(640-60),
+  y:3*17,
+  width:3*9,
+  height:3*7,
 }
 
 const hexes = new Array(256);
