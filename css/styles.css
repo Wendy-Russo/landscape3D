@@ -14,7 +14,7 @@ html, body {
     image-rendering: -webkit-optimize-contrast; /* webkit */
     image-rendering: -moz-crisp-edges; /* Firefox */
     touch-action: none;
-    width: 100%; /* Set the initial width */
+    
     height: auto; /* Automatically calculate the height to maintain aspect ratio */
     transform-origin: center center; /* Set the transform origin to the center */
     max-height: 100vh;

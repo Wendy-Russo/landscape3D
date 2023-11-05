@@ -26,7 +26,7 @@ setInterval(() => {
   minY = Math.max(minY,0)
 
   let maxY = Math.max(floor.projPoints[0].y ,floor.projPoints[1].y ,floor.projPoints[2].y ,floor.projPoints[3].y )
-  maxY = Math.min(maxY,screen.height) + (256*camera.zoom * 0.5)
+  maxY = Math.min(maxY,screen.height) + (256*camera.zoom * 0.5)+80
 
   let distY = Math.max(camera.zoom,1) //higher = bad quality
   let distX = 1 //same as above, removes some columns and enables upscaling
@@ -52,7 +52,7 @@ setInterval(() => {
         const imageID = texY*map.width+texX;
 
         const scaledHeight =  Math.round(map.elevation[imageID]*heightMult)
-        const top = Math.round(y)-scaledHeight
+        const top = Math.round(pos2D.y+80)-scaledHeight
         
         if(top < -(maxH - top)+1){ //makes sure you don't draw above the top of the screen
           break
@@ -109,6 +109,7 @@ setInterval(() => {
     times.length + " frames \n" + 
     fps + " fps \n" +
     times[times.length-1] + " last image \n" +
+    Math.round(1000/times[times.length-1]) + " last fps \n" +
     camera.zoom.toFixed(1) + " zoom"
   )
 
@@ -132,10 +133,10 @@ window.addEventListener("click", (e) => {
   const hoverY = Math.round(mouseY/canvasHeight*screen.height)
 
   if(
-    hoverX > button.x && 
-    hoverX < button.x + button.width && 
-    hoverY > button.y && 
-    hoverY < button.y + button.height)
+    hoverX > (button.x) && 
+    hoverX < (button.x + button.width) && 
+    hoverY > (button.y) && 
+    hoverY < (button.y + button.height))
   {
     updateMap(Math.round(Math.random() * 1024),256)
   }

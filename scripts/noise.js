@@ -69,11 +69,9 @@ function updateMap(seed,tileSize){
       const elevation = noise(x,y,seed,tileSize);
       map.elevation[y*map.width+x] = elevation;
 
-      const divider = 8;
-
-      const colR = Math.round(overlay(elevation,13)/divider)*divider
-      const colG = Math.round(overlay(elevation,148)/divider)*divider
-      const colB = Math.round(overlay(elevation,0)/divider)*divider
+      const colR = Math.round(overlay(elevation,13))
+      const colG = Math.round(overlay(elevation,148))
+      const colB = Math.round(overlay(elevation,0))
 
       map.color[y*map.width+x] = quickRGBtoHex(colR,colG,colB);
     }

@@ -13,7 +13,7 @@ const map = {
 }
 
 const screen = {
-  width: 680,
+  width: 640,
   height:480,
 
   canvas: document.getElementById("canvas"),
