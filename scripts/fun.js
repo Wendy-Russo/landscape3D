@@ -1,39 +1,54 @@
 
-updateMap(20,256)
+updateMap(16021,map.tileSize)
 
-
+let delta = 1;
 
 const times = []
+
+function adjustArrayToHistogram(array, targetHistogram) {
+  const currentHistogram = getHistogramFromArray(array);
+
+  for (let value = 0; value < targetHistogram.length; value++) {
+    const targetCount = targetHistogram[value];
+    const currentCount = currentHistogram[value];
+
+    if (currentCount > targetCount) {
+      // Remove excess occurrences of the value
+      const excessCount = currentCount - targetCount;
+      for (let i = 0; i < excessCount; i++) {
+        const indexToRemove = array.indexOf(value);
+        array.splice(indexToRemove, 1);
+      }
+    } else if (currentCount < targetCount) {
+      // Add missing occurrences of the value
+      const missingCount = targetCount - currentCount;
+      for (let i = 0; i < missingCount; i++) {
+        array.push(value);
+      }
+    }
+    // If currentCount === targetCount, no modification needed for this value
+  }
+
+  return array;
+}
+
+
 setInterval(() => {
   
-  const m = new Matrix()
-  m.rotation(camera.rotation.x,camera.rotation.y,camera.rotation.z)
-
   const floor = new plane(new vec(0.0,0.0,0.0),camera.rotation,camera.zoom,0)
-
 
   drawBackground(100,175,254);
   
   const time = new Date();
+  let {minX,maxX,minY,maxY} = floor.screenBoundaries()
 
-  let minX = Math.min(floor.projPoints[0].x ,floor.projPoints[1].x ,floor.projPoints[2].x ,floor.projPoints[3].x )
-  minX = 0//Math.max(minX,0)
-
-  let maxX = Math.max(floor.projPoints[0].x ,floor.projPoints[1].x ,floor.projPoints[2].x ,floor.projPoints[3].x )
-  maxX = 640 // Math.min(maxX,screen.width)
-
-  let minY = Math.min(floor.projPoints[0].y ,floor.projPoints[1].y ,floor.projPoints[2].y ,floor.projPoints[3].y )
-  minY = 0// Math.max(minY,0)
-
-  let maxY = Math.max(floor.projPoints[0].y ,floor.projPoints[1].y ,floor.projPoints[2].y ,floor.projPoints[3].y )
-  maxY = 480 // Math.min(maxY,screen.height) + (256*camera.zoom * 0.5)+80
+  maxY += (256*camera.zoom * 0.5) //draw too far don 
 
   let distY = Math.max(camera.zoom,1) //higher = bad quality
   let distX = 1 //same as above, removes some columns and enables upscaling
 
-  const halfZoom = camera.zoom*0.5
-  const heightMult = camera.zoom/screen.height*256
 
+  //FOLDING: Projection formula, part 1
   const point0 = floor.projPoints[1];
   const point1 = floor.projPoints[2];
   const point3 = floor.projPoints[0];
@@ -56,12 +71,11 @@ setInterval(() => {
     for(let y = Math.round(maxY) ; y > Math.round(minY); y-=distY){
 
       const pos2D = new vec(x,y,0)
+      let kx = x - point0.x
+      let ky = y - point0.y
+      let u  = k4 * (ky*k3 - kx*k1)
 
-      if(isPointInQuadrilateral(pos2D,floor.projPoints)){ //isPointInQuadrilateral(pos2D,floor.projPoints)
-        
-        let kx = x - point0.x
-        let ky = y - point0.y
-        let u  = k4 * (ky*k3 - kx*k1)
+      if(u > 0 && u < 1 ){
 
         let v = 0;
         if(k1 !== 0) {
@@ -70,38 +84,29 @@ setInterval(() => {
         else{
           v = k7 * (kx - u * k2)
         }
-        
 
-        //const pos3D  = projectTo3D(pos2D)
-        //const pos3DRot = m.multiply(pos3D)
+        if(v > 0 && v < 1){
 
-        //const texX = Math.floor(remap(pos3DRot.x,-halfZoom,halfZoom,0,map.width))
-        //const texY = Math.floor(remap(pos3DRot.y,-halfZoom,halfZoom,0,map.width))
-        
-        const texX = Math.floor(remap(u,0,1,0,map.width))
-        const texY = Math.floor(remap(v,0,1,0,map.height))
-
-        //if(texX < 0 || texY < 0 || texX > 511 || texY > 511) continue
-
-        const imageID = texY*map.width+texX;
-        const scaledHeight =  Math.round(map.elevation[imageID]*heightMult)
-        const top = Math.round(pos2D.y+80)-scaledHeight
-        
-        if(top < -(maxH - top)+1){ //makes sure you don't draw above the top of the screen
-          break
-        }
-        else if(top < maxH){ //prevents overdraw
-          if(first){ //skip the first line 
+          const texX = Math.floor(u*map.width)
+          const texY = Math.floor(v*map.width)
+          const imageID = texY*map.width+texX;
+          const scaledHeight =  getDrawingHeight(texX,texY)
+          const top = Math.round(pos2D.y)-scaledHeight
+          
+          if(maxH > 0 && top < maxH){ //prevents overdraw
+            if(first){ //skip the first line 
+              maxH = top
+              first = false
+              continue
+            }
+            const length = maxH - top
+    
+            DrawVerticalLineHEX(x,top,length,map.color[imageID])
             maxH = top
-            first = false
-            continue
           }
-          const length = maxH - top
-
-          DrawVerticalLineHEX(x,top,length,map.color[imageID])
-          maxH = top
         }
       }
+      
     }
   }
 
@@ -112,115 +117,61 @@ setInterval(() => {
       }
     }
   }
+  
+  drawUI()
 
-  for(let x = 500; x<screen.width; x++){
-    for(let y = 0; y<screen.height; y++){
-      if(isInRectangle(x,y,button)){
-        drawPixel(x,y,255,255,255)
-      } else if(isInRectangle(x,y,buttonStop)){
-        drawPixel(x,y,255,255,255)
-      }
+  function recreateTerrainCrossSection(histogram, axisLength, maxHeight, smoothingFactor) {
+    const crossSection = [];
+  
+    for (let i = 0; i < axisLength; i++) {
+      const normalizedIntensity = histogram[i] / maxHeight;
+      const smoothedIntensity = Math.pow(normalizedIntensity, smoothingFactor);
+      crossSection.push(Array.from({ length: smoothedIntensity * axisLength }, () => 1));
     }
+  
+    return crossSection;
   }
+  
+  
 
-  const size = 3;
+  const profile = getCumulativeHistogram(map.ref);
+  const cross = recreateTerrainCrossSection(map.ref,512,512,2)
 
-  const startX = button.x + size
-  const startY = button.y + size
-  drawN(startX,startY,size)
-  drawE(startX + (size*5),startY,size)
-  drawW(startX + (size*10),startY,size)
+  const step = Math.ceil(map.profile.length/256)
+  for(let i = 0 ; i < map.profile.length; i++){
 
-  let lineX = 0
+    const bX = 0;
+    const bY = 480;
 
-  drawI(startX + (size*lineX),startY+(size*6),size)
-  drawM(startX + (size*(lineX+2)),startY+(size*6),size)
-  drawG(startX + (size*(lineX+8)),startY+(size*6),size)
+    let smooth = i/map.profile.length*step
+    smooth = Math.pow(smooth,2)*3 - Math.pow(smooth,3)*2
 
-  if(camera.autoRotate){
-    drawPlay(buttonStop.x + size*1,buttonStop.y + size * 1,size,0)
-    drawPause(buttonStop.x + size*5,buttonStop.y + size * 1,size,127)
-  }else{
-    drawPlay(buttonStop.x + size*1,buttonStop.y + size * 1,size,127)
-    drawPause(buttonStop.x + size*5,buttonStop.y + size * 1,size,0)
+    let height = map.profile[i*step]/Math.max(... map.profile)
+    
+    height = Math.round(lerp(smooth,height,map.strictness)*60)
+    const x = bX+i
+    DrawVerticalLine(x,bY-height,height,0,0,0)
   }
-
 
   updateScreen();
 
+  
+
   if(camera.autoRotate){
-    camera.rotation.z -= 1/10
+    camera.rotation.z -= radiantsToDegrees(0.001)
   }
 
-  times.push(new Date() - time)
+
+  delta = new Date() - time
+  times.push(delta)
   const timeMS = calculateAverage(times).toFixed(2)
   const fps = Math.round(1000/timeMS);
-  console.log(
+  /*console.log(
     timeMS + " ms \n" + 
     times.length + " frames \n" + 
     fps + " fps \n" +
     times[times.length-1] + " last image \n" +
     Math.round(1000/times[times.length-1]) + " last fps \n" +
     camera.zoom.toFixed(1) + " zoom"
-  )
-
+  )*/
 }, 0);
-
-window.addEventListener("wheel", (e) => 
-  { 
-    camera.zoom += (e.deltaY > 0 ? -0.1 : 0.1)
-    camera.zoom = Math.max(camera.zoom,0.25)
-    camera.zoom = Math.min(camera.zoom,8)
-  }
-)
-
-window.addEventListener("click", (e) => {
-  const canvasWidth = document.getElementById("canvas").offsetWidth
-  const mouseX = e.offsetX
-  const hoverX = Math.round(mouseX/canvasWidth*screen.width)
-  
-  const canvasHeight = document.getElementById("canvas").offsetHeight
-  const mouseY = e.offsetY
-  const hoverY = Math.round(mouseY/canvasHeight*screen.height)
-
-  if(isInRectangle(hoverX,hoverY,button))
-  {
-    updateMap(Math.round(Math.random() * 1024 * 32),256)
-  }
-
-  if(isInRectangle(hoverX,hoverY,buttonStop))
-  {
-    camera.autoRotate = !camera.autoRotate
-  }
-})
-
-
-
-
-/*BASICALLY
-
-point0 = screen space coordinates for (0,0) in texture space
-point1 = screen space coordinates for (width,0) in texture space
-point2 = screen space coordinates for (0,height) in texture space
-
-  CHANGES WHEN CAMERA MOVES
-
-xVecY = point1.y - point0.y
-xVecX = point1.x - point0.x
-
-yVecY = point2.y - point0.y
-yVecX = point2.x - point0.x
-
-k4 = 1 / xVecY * yVecX - yVecY * xVecX
-k6 = 1 / yVecY
-k7 = 1 / yVecX
-
-  CHANGES FOR EACH PIXEL
-
-kx = xi - point0.x
-ky = yi - point0.y
-u  = k4 * (ky*k3 - kx*yVecY)
-v  = k6 * (ky - u * xVecY)
-(v = k7 * (kx - u * xVecX))
-
-*/

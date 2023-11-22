@@ -94,5 +94,21 @@ class plane {
       new projectTo2D(this.worldRot[3])
     ]
   }
+
+  screenBoundaries(){
+    let minX = Math.min(this.projPoints[0].x ,this.projPoints[1].x ,this.projPoints[2].x ,this.projPoints[3].x )
+      minX = Math.max(minX,0)
+
+    let maxX = Math.max(this.projPoints[0].x ,this.projPoints[1].x ,this.projPoints[2].x ,this.projPoints[3].x )
+      maxX = Math.min(maxX,screen.width)
+
+    let minY = Math.min(this.projPoints[0].y ,this.projPoints[1].y ,this.projPoints[2].y ,this.projPoints[3].y )
+      minY = Math.max(minY,0)
+
+    let maxY = Math.max(this.projPoints[0].y ,this.projPoints[1].y ,this.projPoints[2].y ,this.projPoints[3].y )
+      maxY = Math.min(maxY,screen.height)
+
+    return {minX:minX,maxX:maxX,minY:minY,maxY:maxY}
+  }
 }
 

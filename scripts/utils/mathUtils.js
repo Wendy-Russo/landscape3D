@@ -4,6 +4,10 @@ function degreesToRadians(degrees) {
   return degrees * (Math.PI / 180);
 }
 
+function radiantsToDegrees(degrees) {
+  return degrees*180/Math.PI;
+}
+
 /**
  * Returns the value, mapped to the minimum and maximum
  * @param {number} value 
@@ -13,10 +17,10 @@ function degreesToRadians(degrees) {
  */
 function minMax(value,min,max){
 
-  if(value<=min){
+  if(value<min){
     return min
   }
-  else if(value >= max){
+  else if(value > max){
     return max
   }
   else{
