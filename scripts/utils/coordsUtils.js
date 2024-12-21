@@ -65,7 +65,7 @@ function isInRectangle(x,y,rec){
 
 function getDrawingHeight(texX,texY){
   const heightMult = camera.zoom*screen.height*map.heightMult*0.001
-  let heightBase = map.elevation[texY*map.width+texX];
+  let heightBase = Math.max(map.waterHeight,map.elevation[texY*map.width+texX]);
   //heightBase = Math.max(heightBase,map.waterHeight)
 
   const camheight = Math.sin(degreesToRadians(camera.rotation.x))

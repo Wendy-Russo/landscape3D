@@ -15,7 +15,27 @@
 </head>
 <body class="bg-dark" data-bs-theme="dark">
     
-    <header>
+    <header
+        style="position: absolute;
+            z-index: 1;
+        "
+    >
+        <select 
+            class="btn btn-primary" 
+            id="shapeSelect"
+            value="Canyon"
+        >
+            <option value="Canyon">Canyon</option>
+            <option value="Canyon2">Canyon2</option>
+            <option value="Fuji">Fuji</option>
+            <option value="Monument">Monument</option>
+            <option value="South">South</option>
+        </select>
+
+        <button
+            class="btn btn-primary"
+            id="resetButton"
+        >⭮</button>
     </header>
 
     <main class="h-100">
@@ -28,7 +48,6 @@
     <script src="./cayon.js"></script>
     <script src="./scripts/utils/mathUtils.js"></script>
     <script src="./scripts/utils/coordsUtils.js"></script>
-    <script src="./scripts/utils/alphabetUtils.js"></script>
     <script src="./scripts/classes/plane.js"></script>
     <script src="./scripts/classes/vector.js"></script>
     <script src="./scripts/setup.js"></script>

@@ -1,37 +1,7 @@
 
-updateMap(16021,map.tileSize)
+updateMap(new Date().getUTCMilliseconds(),map.tileSize)
 
 let delta = 1;
-
-const times = []
-
-function adjustArrayToHistogram(array, targetHistogram) {
-  const currentHistogram = getHistogramFromArray(array);
-
-  for (let value = 0; value < targetHistogram.length; value++) {
-    const targetCount = targetHistogram[value];
-    const currentCount = currentHistogram[value];
-
-    if (currentCount > targetCount) {
-      // Remove excess occurrences of the value
-      const excessCount = currentCount - targetCount;
-      for (let i = 0; i < excessCount; i++) {
-        const indexToRemove = array.indexOf(value);
-        array.splice(indexToRemove, 1);
-      }
-    } else if (currentCount < targetCount) {
-      // Add missing occurrences of the value
-      const missingCount = targetCount - currentCount;
-      for (let i = 0; i < missingCount; i++) {
-        array.push(value);
-      }
-    }
-    // If currentCount === targetCount, no modification needed for this value
-  }
-
-  return array;
-}
-
 
 setInterval(() => {
   
@@ -39,14 +9,12 @@ setInterval(() => {
 
   drawBackground(100,175,254);
   
-  const time = new Date();
   let {minX,maxX,minY,maxY} = floor.screenBoundaries()
 
   maxY += (256*camera.zoom * 0.5) //draw too far don 
 
   let distY = Math.max(camera.zoom,1) //higher = bad quality
   let distX = 1 //same as above, removes some columns and enables upscaling
-
 
   //FOLDING: Projection formula, part 1
   const point0 = floor.projPoints[1];
@@ -110,68 +78,6 @@ setInterval(() => {
     }
   }
 
-  if(distX > 1){
-    for(let x = Math.round(minX)+1 ; x < Math.round(maxX)+1; x+=2){
-      for(let y = Math.round(maxY) ; y > 0; y-=1){
-        screen.buff32[y*screen.width+x] = screen.buff32[y*screen.width+(x-1)] 
-      }
-    }
-  }
-  
-  drawUI()
-
-  function recreateTerrainCrossSection(histogram, axisLength, maxHeight, smoothingFactor) {
-    const crossSection = [];
-  
-    for (let i = 0; i < axisLength; i++) {
-      const normalizedIntensity = histogram[i] / maxHeight;
-      const smoothedIntensity = Math.pow(normalizedIntensity, smoothingFactor);
-      crossSection.push(Array.from({ length: smoothedIntensity * axisLength }, () => 1));
-    }
-  
-    return crossSection;
-  }
-  
-  
-
-  const profile = getCumulativeHistogram(map.ref);
-  const cross = recreateTerrainCrossSection(map.ref,512,512,2)
-
-  const step = Math.ceil(map.profile.length/256)
-  for(let i = 0 ; i < map.profile.length; i++){
-
-    const bX = 0;
-    const bY = 480;
-
-    let smooth = i/map.profile.length*step
-    smooth = Math.pow(smooth,2)*3 - Math.pow(smooth,3)*2
-
-    let height = map.profile[i*step]/Math.max(... map.profile)
-    
-    height = Math.round(lerp(smooth,height,map.strictness)*60)
-    const x = bX+i
-    DrawVerticalLine(x,bY-height,height,0,0,0)
-  }
-
   updateScreen();
 
-  
-
-  if(camera.autoRotate){
-    camera.rotation.z -= radiantsToDegrees(0.001)
-  }
-
-
-  delta = new Date() - time
-  times.push(delta)
-  const timeMS = calculateAverage(times).toFixed(2)
-  const fps = Math.round(1000/timeMS);
-  /*console.log(
-    timeMS + " ms \n" + 
-    times.length + " frames \n" + 
-    fps + " fps \n" +
-    times[times.length-1] + " last image \n" +
-    Math.round(1000/times[times.length-1]) + " last fps \n" +
-    camera.zoom.toFixed(1) + " zoom"
-  )*/
 }, 0);
